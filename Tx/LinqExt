@@ -1,0 +1,85 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Linq.Expressions;
+
+namespace LinqExt
+{
+    public static class LinqHashSetExtension
+    {
+        public static HashSet<TKey> ToHashSet<TSource, TKey>(
+            this IEnumerable<TSource> source,
+            Func<TSource, TKey> keySelector,
+            IEqualityComparer<TKey> comparer = null)
+        {
+            return new HashSet<TKey>(source.Select(keySelector), comparer);
+        }
+
+        public static HashSet<TKey> ToHashSet<TSource, TKey>(
+            this IQueryable<TSource> source,
+            Expression<Func<TSource, TKey>> keySelector, 
+            IEqualityComparer<TKey> comparer = null)
+        {
+            return new HashSet<TKey>(source.Select(keySelector), comparer);
+        }
+
+        public static HashSet<TKey> ToHashSet<TKey>(
+            this IEnumerable<TKey> source, 
+            IEqualityComparer<TKey> comparer = null)
+        {
+            return new HashSet<TKey>(source, comparer);
+        }
+    }
+    
+    public static class LinqDistinctByExtension
+    {
+        public static IEnumerable<TSource> DistinctBy<TSource, TKey>
+            (this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
+        {
+            var seenKeys = new HashSet<TKey>();
+            foreach (TSource element in source)
+            {
+                if (seenKeys.Add(keySelector(element)))
+                {
+                    yield return element;
+                }
+            }
+        }
+    }
+    
+    public static class CollectionAddRangeExtension
+    {
+        public static void AddRange<T>(this ICollection<T> collection, IEnumerable<T> source)
+        {
+            foreach (var item in source)
+                collection.Add(item);
+        }
+    }
+        
+    public static class LinqToQueueExtension
+    {
+        public static Queue<T> ToQueue<T>(
+            this IEnumerable<T> source)
+        {
+            return new Queue<T>(source);
+        }
+
+        public static Queue<T> ToQueue<T>(
+            this IQueryable<T> source)
+        {
+            return new Queue<T>(source);
+        }
+    }
+    
+    public static class LinqPagingExtension
+    {
+        public static IEnumerable<IEnumerable<TSource>> Paging<TSource>
+            (this IEnumerable<TSource> source, int windowSize)
+        {
+            return source
+                .Select((item, index) => new { item, window = index / windowSize })
+                .GroupBy(_ => _.window, _ => _.item);
+        }
+    }
+}
