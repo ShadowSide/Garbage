@@ -5,76 +5,93 @@
 
 namespace scope_exit_detail
 {
-	class ScopeExit//: protected ExceptionDetector
-	{
-	private:
-		using Functor = std::function<void()>;
-		Functor _executer;
-		
-	public:
-		ScopeExit() = delete;
-		ScopeExit(const ScopeExit&) = delete;
-		ScopeExit(ScopeExit&&) = delete;
-		ScopeExit& operator=(const ScopeExit&) = delete;
-		ScopeExit& operator=(ScopeExit&&) = delete;
-		
-		ScopeExit(Functor executer)
-			: _executer(std::move(executer))
-		{}
-		
-		~ScopeExit() BOOST_NOEXCEPT_IF(false)
+	namespace {
+		class ScopeExit: protected ExceptionDetector
 		{
-			_executer();
-		}
-	};
-	
-	class ScopeFailureExit: protected ExceptionDetector
-	{
-	private:
-		using Functor = std::function<void()>;
-		Functor _executer;
-		
-	public:
-		ScopeFailureExit() = delete;
-		ScopeFailureExit(const ScopeFailureExit&) = delete;
-		ScopeFailureExit(ScopeFailureExit&&) = delete;
-		ScopeFailureExit& operator=(const ScopeFailureExit&) = delete;
-		ScopeFailureExit& operator=(ScopeFailureExit&&) = delete;
-		
-		ScopeFailureExit(Functor executer)
-			: _executer(std::move(executer))
-		{}
-		
-		~ScopeFailureExit() BOOST_NOEXCEPT_IF(false)
+		private:
+			using Functor = std::function<void()>;
+			Functor _executer;
+
+		public:
+			ScopeExit() = delete;
+			ScopeExit(const ScopeExit&) = delete;
+			ScopeExit(ScopeExit&&) = delete;
+			ScopeExit& operator=(const ScopeExit&) = delete;
+			ScopeExit& operator=(ScopeExit&&) = delete;
+
+			ScopeExit(Functor executer)
+				: _executer(std::move(executer))
+			{}
+
+			~ScopeExit() BOOST_NOEXCEPT_IF(false)
+			{
+				const bool onException = this->uncaught_exception_on_current_level();
+				try
+				{
+					_executer();
+				}
+				catch(...)
+				{
+					if(!onException)
+						throw;
+				}
+			}
+		};
+
+		class ScopeFailureExit : protected ExceptionDetector
 		{
-			if(this->uncaught_exception_on_current_level())
-				_executer();
-		}
-	};
-	
-	class ScopeSuccessExit: protected ExceptionDetector
-	{
-	private:
-		using Functor = std::function<void()>;
-		Functor _executer;
-		
-	public:
-		ScopeSuccessExit() = delete;
-		ScopeSuccessExit(const ScopeSuccessExit&) = delete;
-		ScopeSuccessExit(ScopeSuccessExit&&) = delete;
-		ScopeSuccessExit& operator=(const ScopeSuccessExit&) = delete;
-		ScopeSuccessExit& operator=(ScopeSuccessExit&&) = delete;
-		
-		ScopeSuccessExit(Functor executer)
-			: _executer(std::move(executer))
-		{}
-		
-		~ScopeSuccessExit() BOOST_NOEXCEPT_IF(false)
+		private:
+			using Functor = std::function<void()>;
+			Functor _executer;
+
+		public:
+			ScopeFailureExit() = delete;
+			ScopeFailureExit(const ScopeFailureExit&) = delete;
+			ScopeFailureExit(ScopeFailureExit&&) = delete;
+			ScopeFailureExit& operator=(const ScopeFailureExit&) = delete;
+			ScopeFailureExit& operator=(ScopeFailureExit&&) = delete;
+
+			ScopeFailureExit(Functor executer)
+				: _executer(std::move(executer))
+			{}
+
+			~ScopeFailureExit() BOOST_NOEXCEPT
+			{
+				if (this->uncaught_exception_on_current_level())
+				try
+				{
+					_executer();
+				}catch(...)
+				{
+					//ignore
+				}
+			}
+		};
+
+		class ScopeSuccessExit : protected ExceptionDetector
 		{
-			if(!this->uncaught_exception_on_current_level())
-				_executer();
-		}
-	};
+		private:
+			using Functor = std::function<void()>;
+			Functor _executer;
+
+		public:
+			ScopeSuccessExit() = delete;
+			ScopeSuccessExit(const ScopeSuccessExit&) = delete;
+			ScopeSuccessExit(ScopeSuccessExit&&) = delete;
+			ScopeSuccessExit& operator=(const ScopeSuccessExit&) = delete;
+			ScopeSuccessExit& operator=(ScopeSuccessExit&&) = delete;
+
+			ScopeSuccessExit(Functor executer)
+				: _executer(std::move(executer))
+			{}
+
+			~ScopeSuccessExit() BOOST_NOEXCEPT_IF(false)
+			{
+				if (!this->uncaught_exception_on_current_level())
+					_executer();
+			}
+		};
+	}
 }
 #define TOKEN_CONCAT_INTERNAL(x, y) x ## y
 #define TOKEN_CONCAT(x, y) TOKEN_CONCAT_INTERNAL(x, y)
